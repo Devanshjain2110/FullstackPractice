@@ -14,6 +14,14 @@ const users = [
 
 app.use(express.json());
 
+function UnhealthyKidneyCheck() {
+  let isUnhealthy = false;
+
+  for (let i = 0; i < users[0].kidneys.length; i++) {
+    if (!users[0].kidneys[i].healthy) isUnhealthy = true;
+  }
+  return isUnhealthy;
+}
 app.get("/", function (req, res) {
   const userName = req.query.UserName;
   if (!userName) return;
@@ -26,7 +34,11 @@ app.get("/", function (req, res) {
     if (user[0].kidneys[i].healthy) userHealthyKidneys++;
   }
   const unHealthyKidneys = userKidneys - userHealthyKidneys;
-  return res.json([userKidneys, unHealthyKidneys, userHealthyKidneys]);
+  return res.json({
+    TotalKidneys: userKidneys,
+    TotalUnhealthyKidneys: unHealthyKidneys,
+    TotalHealthyKidneys: userHealthyKidneys,
+  });
 });
 
 app.post("/", function (req, res) {
@@ -37,20 +49,30 @@ app.post("/", function (req, res) {
 
 // Making all kidneys healthy
 app.put("/", function (req, res) {
-  for (let i = 0; i < users[0].kidneys.length; i++) {
-    if (!users[0].kidneys[i].healthy) users[0].kidneys[i].healthy = true;
+  if (UnhealthyKidneyCheck()) {
+    for (let i = 0; i < users[0].kidneys.length; i++) {
+      if (!users[0].kidneys[i].healthy) users[0].kidneys[i].healthy = true;
+    }
+    res.json({});
+  } else {
+    res.status(411).json({ msg: " You have no kidneys" });
   }
-  res.json({});
 });
 
 // Removing all healthy Kidneys
 app.delete("/", function (req, res) {
-  const newKidneys = [];
-  for (let i = 0; i < users[0].kidneys.length; i++) {
-    if (!users[0].kidneys[i].healthy) newKidneys.push({ healthy: true });
+  if (UnhealthyKidneyCheck()) {
+    const newKidneys = [];
+    for (let i = 0; i < users[0].kidneys.length; i++) {
+      if (users[0].kidneys[i].healthy) newKidneys.push({ healthy: true });
+    }
+    users[0].kidneys = newKidneys;
+    res.json({ msg: "done" });
+  } else {
+    res.status(411).json({
+      msg: "You have no kidneys",
+    });
   }
-  users[0].kidneys = newKidneys;
-  res.json({ msg: "done" });
 });
 
 app.listen(3000);
